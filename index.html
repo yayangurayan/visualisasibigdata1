@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Visualisasi Data E-Commerce</title>
+    <!-- Memuat Tailwind CSS untuk styling modern -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Memuat Chart.js (teknologi utama Anda) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Menggunakan font Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Mengaplikasikan font Inter ke seluruh halaman */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Style kustom untuk input file agar lebih menarik */
+        input[type="file"]::file-selector-button {
+            background-color: #3b82f6; /* bg-blue-500 */
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem; /* rounded-md */
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        input[type="file"]::file-selector-button:hover {
+            background-color: #2563eb; /* bg-blue-600 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <!-- Header Utama -->
+        <header class="mb-6">
+            <h1 class="text-3xl font-bold text-gray-800">Dashboard Visualisasi Data E-Commerce</h1>
+            <p class="text-gray-600">Analisis interaktif dari data transaksi e-commerce.</p>
+        </header>
+
+        <!-- Panel Kontrol: Upload File -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+            <h2 class="text-xl font-semibold mb-3">Unggah Data Transaksi</h2>
+            <p class_="text-gray-600 mb-4">Silakan unggah file `ecommerce_transactions.csv` Anda.</p>
+            <input type="file" id="csvFileInput" accept=".csv" class="text-sm text-gray-700">
+            <div id="loadingMessage" class="hidden mt-4 text-blue-600">
+                <svg class="animate-spin h-5 w-5 mr-3 inline-block" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Memproses data...
+            </div>
+            <div id="errorMessage" class="hidden mt-4 text-red-600 font-medium"></div>
+        </div>
+
+        <!-- Kontainer Statistik Utama -->
+        <div id="statsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6 hidden">
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-gray-500 text-sm font-medium">Total Transaksi</h3>
+                <p id="totalTransactions" class="text-3xl font-bold text-gray-900">0</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-gray-500 text-sm font-medium">Total Pendapatan</h3>
+                <p id="totalRevenue" class="text-3xl font-bold text-gray-900">0</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-gray-500 text-sm font-medium">Pembelian Rata-rata</h3>
+                <p id="averagePurchase" class="text-3xl font-bold text-gray-900">0</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-gray-500 text-sm font-medium">Negara Teratas</h3>
+                <p id="topCountry" class="text-3xl font-bold text-gray-900">-</p>
+            </div>
+        </div>
+
+        <!-- Grid untuk Chart -->
+        <div id="chartsGrid" class="grid grid-cols-1 lg:grid-cols-2 gap-6 hidden">
+            
+            <!-- Chart 1: Tren Penjualan per Bulan (Line Chart) -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <canvas id="salesOverTimeChart"></canvas>
+            </div>
+
+            <!-- Chart 2: Penjualan per Kategori Produk (Doughnut Chart) -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <canvas id="categoryChart"></canvas>
+            </div>
+
+            <!-- Chart 3: Top 10 Negara (Bar Chart) -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <canvas id="countryChart"></canvas>
+            </div>
+
+            <!-- Chart 4: Distribusi Metode Pembayaran (Pie Chart) -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <canvas id="paymentMethodChart"></canvas>
+            </div>
+
+            <!-- Chart 5: Distribusi Usia Pelanggan (Bar Chart) -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <canvas id="ageDistributionChart"></canvas>
+            </div>
+
+            <!-- Chart 6: Distribusi Jumlah Pembelian (Histogram) -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <canvas id="purchaseAmountHistogram"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variabel global untuk menyimpan data dan instance chart
+        let allTransactions = [];
+        const chartInstances = {};
+        const appColors = [
+            '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+            '#14b8a6', '#f97316', '#d946ef', '#0ea5e9', '#65a30d'
+        ];
+
+        // Fungsi untuk menghancurkan chart yang ada sebelum menggambar ulang
+        function destroyChart(chartId) {
+            if (chartInstances[chartId]) {
+                chartInstances[chartId].destroy();
+                delete chartInstances[chartId];
+            }
+        }
+
+        // Fungsi untuk mem-format mata uang (Dollar, asumsi)
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(amount);
+        }
+        
+        // Fungsi untuk mem-format angka biasa
+        function formatNumber(num) {
+            return new Intl.NumberFormat('id-ID').format(num);
+        }
+
+        // Fungsi parser CSV sederhana
+        function parseCSV(text) {
+            const lines = text.split(/\r\n|\n/);
+            // Ambil header, perhatikan delimiter ';'
+            const headers = lines[0].split(';').map(h => h.trim());
+            
+            const data = [];
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim() === "") continue;
+                
+                // Pisahkan data per baris, perhatikan delimiter ';'
+                const values = lines[i].split(';');
+                if (values.length === headers.length) {
+                    const entry = {};
+                    for (let j = 0; j < headers.length; j++) {
+                        entry[headers[j]] = values[j].trim();
+                    }
+                    data.push(entry);
+                }
+            }
+            return data;
+        }
+
+        // Fungsi utama untuk memproses data
+        function processData(csvText) {
+            // Tampilkan pesan loading
+            document.getElementById('loadingMessage').classList.remove('hidden');
+            document.getElementById('errorMessage').classList.add('hidden');
+            
+            try {
+                const parsedData = parseCSV(csvText);
+                
+                // Membersihkan dan mentransformasi data
+                allTransactions = parsedData.map(row => {
+                    // Konversi jumlah pembelian: "780,69" -> 780.69 (float)
+                    const purchaseAmount = parseFloat(row.Purchase_Amount.replace(',', '.')) || 0;
+                    
+                    // Konversi tanggal: "DD/MM/YYYY" -> Date object
+                    const dateParts = row.Transaction_Date.split('/');
+                    const transactionDate = new Date(+dateParts[2], dateParts[1] - 1, +dateParts[0]);
+
+                    return {
+                        ...row,
+                        Age: parseInt(row.Age) || 0,
+                        Purchase_Amount_Num: purchaseAmount,
+                        Transaction_Date_Obj: transactionDate,
+                    };
+                }).filter(row => row.Transaction_ID); // Filter baris kosong
+
+                if (allTransactions.length === 0) {
+                    throw new Error("Tidak ada data valid yang ditemukan di file CSV. Pastikan formatnya benar.");
+                }
+
+                // Tampilkan statistik
+                displayStats();
+                
+                // Buat semua chart
+                createSalesOverTimeChart();
+                createCategoryChart();
+                createCountryChart();
+                createPaymentMethodChart();
+                createAgeDistributionChart();
+                createPurchaseAmountHistogram();
+
+                // Tampilkan kontainer statistik dan chart
+                document.getElementById('statsContainer').classList.remove('hidden');
+                document.getElementById('chartsGrid').classList.remove('hidden');
+                
+            } catch (error) {
+                console.error("Error processing data:", error);
+                const errorEl = document.getElementById('errorMessage');
+                errorEl.textContent = `Error: ${error.message}`;
+                errorEl.classList.remove('hidden');
+            } finally {
+                // Sembunyikan pesan loading
+                document.getElementById('loadingMessage').classList.add('hidden');
+            }
+        }
+
+        // Fungsi untuk menampilkan statistik utama
+        function displayStats() {
+            const totalTransactions = allTransactions.length;
+            const totalRevenue = allTransactions.reduce((sum, tx) => sum + tx.Purchase_Amount_Num, 0);
+            const averagePurchase = totalRevenue / totalTransactions;
+
+            const countrySales = allTransactions.reduce((acc, tx) => {
+                acc[tx.Country] = (acc[tx.Country] || 0) + tx.Purchase_Amount_Num;
+                return acc;
+            }, {});
+            
+            const topCountry = Object.entries(countrySales).sort(([, a], [, b]) => b - a)[0][0];
+
+            document.getElementById('totalTransactions').textContent = formatNumber(totalTransactions);
+            document.getElementById('totalRevenue').textContent = formatCurrency(totalRevenue);
+            document.getElementById('averagePurchase').textContent = formatCurrency(averagePurchase);
+            document.getElementById('topCountry').textContent = topCountry;
+        }
+
+        // --- Fungsi Pembuatan Chart ---
+
+        // 1. Chart Tren Penjualan per Bulan (Line)
+        function createSalesOverTimeChart() {
+            destroyChart('salesOverTimeChart');
+            
+            const salesByMonth = allTransactions.reduce((acc, tx) => {
+                if (tx.Transaction_Date_Obj instanceof Date && !isNaN(tx.Transaction_Date_Obj)) {
+                    const monthKey = `${tx.Transaction_Date_Obj.getFullYear()}-${(tx.Transaction_Date_Obj.getMonth() + 1).toString().padStart(2, '0')}`;
+                    acc[monthKey] = (acc[monthKey] || 0) + tx.Purchase_Amount_Num;
+                }
+                return acc;
+            }, {});
+
+            const sortedMonths = Object.keys(salesByMonth).sort();
+            const labels = sortedMonths;
+            const data = sortedMonths.map(month => salesByMonth[month]);
+
+            const ctx = document.getElementById('salesOverTimeChart').getContext('2d');
+            chartInstances['salesOverTimeChart'] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Total Penjualan',
+                        data: data,
+                        borderColor: appColors[0],
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: true,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Tren Penjualan (per Bulan)',
+                            font: { size: 18 }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: (value) => formatCurrency(value)
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 2. Chart Penjualan per Kategori (Doughnut)
+        function createCategoryChart() {
+            destroyChart('categoryChart');
+            
+            const categorySales = allTransactions.reduce((acc, tx) => {
+                acc[tx.Product_Category] = (acc[tx.Product_Category] || 0) + tx.Purchase_Amount_Num;
+                return acc;
+            }, {});
+
+            const labels = Object.keys(categorySales);
+            const data = Object.values(categorySales);
+
+            const ctx = document.getElementById('categoryChart').getContext('2d');
+            chartInstances['categoryChart'] = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Penjualan',
+                        data: data,
+                        backgroundColor: appColors,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Penjualan per Kategori Produk',
+                            font: { size: 18 }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    // PERBAIKAN: Mengambil total dari data dataset, bukan fungsi yang tidak ada
+                                    const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(2);
+                                    return `${label}: ${formatCurrency(value)} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 3. Chart Top 10 Negara (Bar)
+        function createCountryChart() {
+            destroyChart('countryChart');
+            
+            const countrySales = allTransactions.reduce((acc, tx) => {
+                acc[tx.Country] = (acc[tx.Country] || 0) + tx.Purchase_Amount_Num;
+                return acc;
+            }, {});
+
+            const sortedCountries = Object.entries(countrySales)
+                                    .sort(([, a], [, b]) => b - a)
+                                    .slice(0, 10);
+            
+            const labels = sortedCountries.map(entry => entry[0]);
+            const data = sortedCountries.map(entry => entry[1]);
+
+            const ctx = document.getElementById('countryChart').getContext('2d');
+            chartInstances['countryChart'] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Total Pendapatan',
+                        data: data,
+                        backgroundColor: appColors[1],
+                    }]
+                },
+                options: {
+                    indexAxis: 'y', // Membuatnya menjadi horizontal bar chart
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Top 10 Negara (berdasar Pendapatan)',
+                            font: { size: 18 }
+                        },
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => `${context.dataset.label}: ${formatCurrency(context.parsed.x)}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                callback: (value) => formatCurrency(value)
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 4. Chart Metode Pembayaran (Pie)
+        function createPaymentMethodChart() {
+            destroyChart('paymentMethodChart');
+            
+            const paymentCounts = allTransactions.reduce((acc, tx) => {
+                acc[tx.Payment_Method] = (acc[tx.Payment_Method] || 0) + 1;
+                return acc;
+            }, {});
+
+            const labels = Object.keys(paymentCounts);
+            const data = Object.values(paymentCounts);
+
+            const ctx = document.getElementById('paymentMethodChart').getContext('2d');
+            chartInstances['paymentMethodChart'] = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Jumlah Transaksi',
+                        data: data,
+                        backgroundColor: [appColors[2], appColors[3], appColors[4], appColors[5], appColors[6], appColors[7]],
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Distribusi Metode Pembayaran',
+                            font: { size: 18 }
+                        },
+                         tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    // PERBAIKAN: Mengambil total dari data dataset, bukan fungsi yang tidak ada
+                                    const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(2);
+                                    return `${label}: ${formatNumber(value)} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 5. Chart Distribusi Usia (Bar)
+        function createAgeDistributionChart() {
+            destroyChart('ageDistributionChart');
+
+            const ageBins = {
+                '18-25': 0, '26-35': 0, '36-45': 0,
+                '46-55': 0, '56-65': 0, '65+': 0
+            };
+
+            allTransactions.forEach(tx => {
+                if (tx.Age <= 25) ageBins['18-25']++;
+                else if (tx.Age <= 35) ageBins['26-35']++;
+                else if (tx.Age <= 45) ageBins['36-45']++;
+                else if (tx.Age <= 55) ageBins['46-55']++;
+                else if (tx.Age <= 65) ageBins['56-65']++;
+                else ageBins['65+']++;
+            });
+
+            const labels = Object.keys(ageBins);
+            const data = Object.values(ageBins);
+
+            const ctx = document.getElementById('ageDistributionChart').getContext('2d');
+            chartInstances['ageDistributionChart'] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Jumlah Pelanggan',
+                        data: data,
+                        backgroundColor: appColors[4],
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Distribusi Usia Pelanggan',
+                            font: { size: 18 }
+                        },
+                         legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            title: { display: true, text: 'Jumlah Pelanggan' }
+                        },
+                        x: {
+                            title: { display: true, text: 'Kelompok Usia' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 6. Chart Distribusi Jumlah Pembelian (Histogram)
+        function createPurchaseAmountHistogram() {
+            destroyChart('purchaseAmountHistogram');
+
+            const amounts = allTransactions.map(tx => tx.Purchase_Amount_Num);
+            const maxAmount = Math.max(...amounts);
+            const binSize = 100;
+            const binCount = Math.ceil(maxAmount / binSize);
+            
+            const bins = new Array(binCount).fill(0);
+            const labels = new Array(binCount).fill(0).map((_, i) => 
+                `${i * binSize + 1} - ${(i + 1) * binSize}`
+            );
+
+            amounts.forEach(amount => {
+                const binIndex = Math.floor(amount / binSize);
+                if (binIndex < binCount) {
+                    bins[binIndex]++;
+                }
+            });
+
+            const ctx = document.getElementById('purchaseAmountHistogram').getContext('2d');
+            chartInstances['purchaseAmountHistogram'] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Jumlah Transaksi',
+                        data: bins,
+                        backgroundColor: appColors[5],
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Distribusi Jumlah Pembelian ($)',
+                            font: { size: 18 }
+                        },
+                         legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            title: { display: true, text: 'Jumlah Transaksi' }
+                        },
+                        x: {
+                            title: { display: true, text: 'Kelompok Jumlah Pembelian' }
+                        }
+                    }
+                }
+            });
+        }
+
+
+        // --- Event Listener ---
+        
+        // Menangani saat file dipilih
+        document.getElementById('csvFileInput').addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                
+                reader.onload = (e) => {
+                    processData(e.target.result);
+                };
+                
+                reader.onerror = () => {
+                    const errorEl = document.getElementById('errorMessage');
+                    errorEl.textContent = 'Gagal membaca file.';
+                    errorEl.classList.remove('hidden');
+                };
+                
+                reader.readAsText(file);
+            }
+        });
+
+    </script>
+</body>
+</html>
