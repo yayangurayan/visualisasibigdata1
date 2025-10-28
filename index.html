@@ -2,45 +2,38 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <!-- Viewport WAJIB untuk responsive design -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Visualisasi Data E-Commerce</title>
-    <!-- Memuat Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Memuat Chart.js (teknologi utama Anda) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Menggunakan font Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        /* Mengaplikasikan font Inter ke seluruh halaman */
         body {
             font-family: 'Inter', sans-serif;
             background-color: #0f172a; /* bg-slate-900 */
         }
-        /* Transisi smooth untuk semua elemen */
         * {
             transition: all 0.15s ease-in-out;
         }
         
-        /* --- PERBAIKAN BUG RESPONSIVITAS --- */
-        /* Memberi ukuran pada canvas wrapper agar tidak kolaps */
-        /* Rasio aspek 4:3 (umum untuk bar/line chart) */
+        /* Wrapper 4:3 untuk Line/Bar */
         .chart-container {
             position: relative;
             width: 100%;
-            padding-top: 75%; /* (3 / 4) * 100% = 75%. Disesuaikan dari 65% */
+            padding-top: 75%; /* 4:3 */
         }
         
-        /* Rasio aspek 1:1 (ideal untuk pie/doughnut) */
+        /* Wrapper 1:1 untuk Pie/Doughnut */
         .chart-container-square {
             position: relative;
             width: 100%;
-            padding-top: 100%; /* 1:1. Disesuaikan dari 90% */
+            padding-top: 100%; /* 1:1 */
+            max-height: 500px; /* Batas maks agar tidak terlalu besar di desktop */
+            margin: 0 auto;
         }
 
-        /* Membuat canvas mengisi wrapper-nya */
         .chart-container canvas,
         .chart-container-square canvas {
             position: absolute;
@@ -49,12 +42,34 @@
             width: 100% !important;
             height: 100% !important;
         }
+        
+        /* Aturan responsif untuk wrapper 1:1 */
+        .chart-container-square {
+             max-width: 90%;
+        }
+        @media (min-width: 640px) {
+             .chart-container-square {
+                max-width: 80%;
+             }
+        }
+        @media (min-width: 1024px) {
+             .chart-container-square {
+                max-width: 100%; 
+             }
+        }
+        
+        /* Style untuk kotak detail yang diklik */
+        .chart-detail-box {
+            background-color: #020617; /* bg-slate-950 */
+            border: 1px solid #334155; /* border-slate-700 */
+            transition: all 0.3s ease-in-out;
+        }
     </style>
 </head>
 <body class="bg-slate-900 text-gray-200 min-h-screen p-4 md:p-8">
 
     <div class="max-w-7xl mx-auto">
-        <!-- Header Utama dan Nama Kelompok -->
+        <!-- Header Utama -->
         <header class="mb-8 text-center">
             <h1 class="text-3xl md:text-4xl font-bold text-white mb-2">
                 Dashboard Visualisasi Data E-Commerce
@@ -63,7 +78,7 @@
                 Analisis interaktif dari data transaksi e-commerce.
             </p>
             <p class="text-sm text-gray-500">
-                Dikerjakan oleh: Andrian, Joice Omasi Angelita Harefa, dan Fauzan Al Gholi
+                Dikerjakan oleh: Andrian, Joice Omasi Angelita Harefa, Fauzan Al Gholi dan Al At Tejana
             </p>
         </header>
 
@@ -74,7 +89,6 @@
                 Unggah file `ecommerce_transactions.csv` Anda untuk memuat dashboard.
             </p>
             
-            <!-- Input file yang lebih modern -->
             <label for="csvFileInput" class="w-full flex justify-center px-4 py-6 bg-slate-700 rounded-lg border-2 border-dashed border-slate-600 cursor-pointer hover:border-blue-500 hover:bg-slate-700/80">
                 <div class="text-center">
                     <svg class="mx-auto h-12 w-12 text-gray-500" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
@@ -86,6 +100,7 @@
                 <input type="file" id="csvFileInput" accept=".csv" class="hidden">
             </label>
 
+            <!-- Indikator Loading dan Pesan Error -->
             <div id="loadingMessage" class="hidden mt-4 text-blue-400 flex items-center justify-center">
                 <svg class="animate-spin h-5 w-5 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -96,7 +111,7 @@
             <div id="errorMessage" class="hidden mt-4 text-red-400 font-medium text-center"></div>
         </div>
 
-        <!-- Kontainer Statistik Utama (Lebih Menarik) -->
+        <!-- Kontainer Statistik Utama -->
         <div id="statsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 hidden">
             <!-- Stat 1: Total Transaksi -->
             <div class="bg-slate-800 p-5 rounded-lg shadow-lg flex items-center space-x-4">
@@ -138,7 +153,7 @@
             <div class="bg-slate-800 p-5 rounded-lg shadow-lg flex items-center space-x-4">
                 <div class="flex-shrink-0 bg-purple-600 p-3 rounded-full">
                     <svg class="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c-1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
                     </svg>
                 </div>
                 <div>
@@ -153,58 +168,117 @@
             
             <!-- Chart 1: Tren Penjualan per Bulan (Line Chart) -->
             <div class="bg-slate-800 p-4 md:p-6 rounded-lg shadow-lg">
-                <!-- PERBAIKAN: Wrapper untuk rasio aspek 4:3 -->
                 <div class="chart-container">
                     <canvas id="salesOverTimeChart"></canvas>
+                </div>
+                <div class="mt-4 p-4 bg-slate-700 rounded-lg">
+                    <h4 class="text-white font-semibold mb-2">Interpretasi Tren Penjualan</h4>
+                    <p class="text-sm text-gray-300">
+                        Tren penjualan menunjukkan fluktuasi dari waktu ke waktu. Puncak penjualan dapat diidentifikasi untuk persiapan inventory dan promosi.
+                    </p>
+                </div>
+                <!-- Box Detail Interaktif -->
+                <div id="salesOverTimeDetail" class="chart-detail-box mt-3 p-4 rounded-lg hidden">
+                    <h5 class="text-sm font-semibold text-blue-400 mb-2">Detail Data</h5>
+                    <p class="text-sm text-gray-300"></p>
                 </div>
             </div>
 
             <!-- Chart 2: Penjualan per Kategori Produk (Doughnut Chart) -->
             <div class="bg-slate-800 p-4 md:p-6 rounded-lg shadow-lg">
-                <!-- PERBAIKAN: Wrapper untuk rasio aspek 1:1 -->
                 <div class="chart-container-square">
                     <canvas id="categoryChart"></canvas>
+                </div>
+                <div class="mt-4 p-4 bg-slate-700 rounded-lg">
+                    <h4 class="text-white font-semibold mb-2">Interpretasi Kategori Produk</h4>
+                    <p class="text-sm text-gray-300">
+                        Kategori produk yang dominan adalah pendorong pendapatan utama. Diversifikasi ke kategori lain dapat mengurangi ketergantungan.
+                    </p>
+                </div>
+                <!-- Box Detail Interaktif -->
+                <div id="categoryDetail" class="chart-detail-box mt-3 p-4 rounded-lg hidden">
+                    <h5 class="text-sm font-semibold text-blue-400 mb-2">Detail Data</h5>
+                    <p class="text-sm text-gray-300"></p>
                 </div>
             </div>
 
             <!-- Chart 3: Top 10 Negara (Bar Chart) -->
             <div class="bg-slate-800 p-4 md:p-6 rounded-lg shadow-lg">
-                <!-- PERBAIKAN: Wrapper untuk rasio aspek 4:3 -->
                 <div class="chart-container">
                     <canvas id="countryChart"></canvas>
+                </div>
+                <div class="mt-4 p-4 bg-slate-700 rounded-lg">
+                    <h4 class="text-white font-semibold mb-2">Interpretasi Pasar Geografis</h4>
+                    <p class="text-sm text-gray-300">
+                        Negara-negara di peringkat teratas adalah pasar utama. Diversifikasi ke pasar dengan peringkat lebih rendah dapat mengurangi risiko.
+                    </p>
+                </div>
+                <!-- Box Detail Interaktif -->
+                <div id="countryDetail" class="chart-detail-box mt-3 p-4 rounded-lg hidden">
+                    <h5 class="text-sm font-semibold text-blue-400 mb-2">Detail Data</h5>
+                    <p class="text-sm text-gray-300"></p>
                 </div>
             </div>
 
             <!-- Chart 4: Distribusi Metode Pembayaran (Pie Chart) -->
             <div class="bg-slate-800 p-4 md:p-6 rounded-lg shadow-lg">
-                <!-- PERBAIKAN: Wrapper untuk rasio aspek 1:1 -->
                 <div class="chart-container-square">
                     <canvas id="paymentMethodChart"></canvas>
+                </div>
+                <div class="mt-4 p-4 bg-slate-700 rounded-lg">
+                    <h4 class="text-white font-semibold mb-2">Interpretasi Metode Pembayaran</h4>
+                    <p class="text-sm text-gray-300">
+                        Dominasi metode tertentu menunjukkan kepercayaan pelanggan. Porsi dompet digital menandakan adopsi fintech yang tinggi.
+                    </p>
+                </div>
+                <!-- Box Detail Interaktif -->
+                <div id="paymentMethodDetail" class="chart-detail-box mt-3 p-4 rounded-lg hidden">
+                    <h5 class="text-sm font-semibold text-blue-400 mb-2">Detail Data</h5>
+                    <p class="text-sm text-gray-300"></p>
                 </div>
             </div>
 
             <!-- Chart 5: Distribusi Usia Pelanggan (Bar Chart) -->
             <div class="bg-slate-800 p-4 md:p-6 rounded-lg shadow-lg">
-                <!-- PERBAIKAN: Wrapper untuk rasio aspek 4:3 -->
                 <div class="chart-container">
                     <canvas id="ageDistributionChart"></canvas>
+                </div>
+                <div class="mt-4 p-4 bg-slate-700 rounded-lg">
+                    <h4 class="text-white font-semibold mb-2">Interpretasi Demografi Pelanggan</h4>
+                    <p class="text-sm text-gray-300">
+                        Puncak di usia 20-39 tahun menandakan Milenial dan Gen Z adalah target pasar utama. Kelompok usia 40+ adalah segmen potensial.
+                    </p>
+                </div>
+                <!-- Box Detail Interaktif -->
+                <div id="ageDistributionDetail" class="chart-detail-box mt-3 p-4 rounded-lg hidden">
+                    <h5 class="text-sm font-semibold text-blue-400 mb-2">Detail Data</h5>
+                    <p class="text-sm text-gray-300"></p>
                 </div>
             </div>
 
             <!-- Chart 6: Distribusi Jumlah Pembelian (Histogram) -->
             <div class="bg-slate-800 p-4 md:p-6 rounded-lg shadow-lg">
-                <!-- PERBAIKAN: Wrapper untuk rasio aspek 4:3 -->
                 <div class="chart-container">
                     <canvas id="purchaseAmountHistogram"></canvas>
+                </div>
+                <div class="mt-4 p-4 bg-slate-700 rounded-lg">
+                    <h4 class="text-white font-semibold mb-2">Interpretasi Nilai Transaksi</h4>
+                    <p class="text-sm text-gray-300">
+                        Sebagian besar transaksi berada di rentang harga rendah. Strategi peningkatan AOV seperti bundling dan cross-selling dapat diterapkan.
+                    </p>
+                </div>
+                <!-- Box Detail Interaktif -->
+                <div id="purchaseAmountHistogramDetail" class="chart-detail-box mt-3 p-4 rounded-lg hidden">
+                    <h5 class="text-sm font-semibold text-blue-400 mb-2">Detail Data</h5>
+                    <p class="text-sm text-gray-300"></p>
                 </div>
             </div>
         </div>
         
-        <!-- PENAMBAHAN: Bagian Interpretasi & Kesimpulan Dinamis -->
+        <!-- Bagian Interpretasi & Kesimpulan Dinamis -->
         <div id="interpretationSection" class="bg-slate-800 p-6 md:p-8 rounded-lg shadow-lg hidden mt-8">
             <h2 class="text-2xl font-bold text-white mb-6 text-center">Analisis & Kesimpulan Utama</h2>
             <div id="interpretationContent" class="space-y-4 text-gray-300">
-                <!-- Konten akan di-generate oleh JS -->
                 <p class="text-center text-gray-500">Memuat data interpretasi...</p>
             </div>
         </div>
@@ -216,64 +290,78 @@
     </div>
 
     <script>
-        // --- PERBAIKAN: Membungkus semua JS dalam DOMContentLoaded ---
-        // Ini memastikan library Chart.js (di <head>) sudah dimuat
-        // sebelum kita mencoba menggunakannya (misal: Chart.defaults)
         document.addEventListener('DOMContentLoaded', () => {
 
-            // --- Konfigurasi Global Chart.js untuk Tema Gelap ---
-            Chart.defaults.color = '#cbd5e1'; // text-slate-300
-            Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)'; // Garis grid tipis
-            Chart.defaults.plugins.title.color = '#ffffff'; // Judul chart putih
+            // --- Konfigurasi Global Chart.js ---
+            Chart.defaults.color = '#cbd5e1'; 
+            Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)'; 
+            Chart.defaults.animation = {
+                duration: 1000,
+                easing: 'easeOutQuart'
+            };
+            Chart.defaults.plugins.title.color = '#ffffff'; 
             Chart.defaults.plugins.title.font = {
                 size: 18,
                 weight: '600',
                 family: "'Inter', sans-serif"
             };
             Chart.defaults.plugins.legend.labels.color = '#cbd5e1';
+            
+            // Konfigurasi Tooltip Kustom (saat hover)
+            Chart.defaults.plugins.tooltip.enabled = true;
+            Chart.defaults.plugins.tooltip.backgroundColor = '#1e293b'; 
+            Chart.defaults.plugins.tooltip.titleColor = '#ffffff';
+            Chart.defaults.plugins.tooltip.bodyColor = '#cbd5e1';
+            Chart.defaults.plugins.tooltip.borderColor = 'rgba(255, 255, 255, 0.1)';
+            Chart.defaults.plugins.tooltip.borderWidth = 1;
+            Chart.defaults.plugins.tooltip.padding = 10;
+            Chart.defaults.plugins.tooltip.cornerRadius = 6;
+            Chart.defaults.plugins.tooltip.boxPadding = 3;
+            Chart.defaults.plugins.tooltip.titleFont = { size: 14, weight: '600' };
+            Chart.defaults.plugins.tooltip.bodyFont = { size: 12 };
+            // --- Akhir Konfigurasi Global ---
 
-            // Variabel global
-            let allTransactions = [];
-            const chartInstances = {};
-            // PENAMBAHAN: Variabel global untuk menyimpan data agregat
+            let allTransactions = []; 
+            const chartInstances = {}; 
+            
+            // Variabel untuk menyimpan data agregat
             let categorySales = {};
             let countrySales = {};
             let paymentCounts = {};
             let ageBins = {};
 
-            // Palet warna yang cerah untuk kontras dengan tema gelap
+            // Palet warna kustom untuk chart
             const appColors = [
                 '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
                 '#14b8a6', '#f97316', '#d946ef', '#0ea5e9', '#65a30d'
             ];
-
-            // Fungsi utilitas
+            
+            // --- Helper Functions ---
             function destroyChart(chartId) {
                 if (chartInstances[chartId]) {
                     chartInstances[chartId].destroy();
                     delete chartInstances[chartId];
                 }
             }
-
             function formatCurrency(amount) {
-                return new Intl.NumberFormat('en-US', {
-                    style: 'currency',
-                    currency: 'USD'
-                }).format(amount);
+                if (typeof amount !== 'number' || isNaN(amount)) {
+                    amount = 0;
+                }
+                return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
             }
-            
             function formatNumber(num) {
+                if (typeof num !== 'number' || isNaN(num)) {
+                    num = 0;
+                }
                 return new Intl.NumberFormat('id-ID').format(num);
             }
-
-            // Fungsi parser CSV
-            function parseCSV(text) {
+            function parseCSV(text, delimiter) {
                 const lines = text.split(/\r\n|\n/);
-                const headers = lines[0].split(';').map(h => h.trim());
+                const headers = lines[0].split(delimiter).map(h => h.trim());
                 const data = [];
                 for (let i = 1; i < lines.length; i++) {
-                    if (lines[i].trim() === "") continue;
-                    const values = lines[i].split(';');
+                    if (lines[i].trim() === "") continue; 
+                    const values = lines[i].split(delimiter);
                     if (values.length === headers.length) {
                         const entry = {};
                         for (let j = 0; j < headers.length; j++) {
@@ -284,56 +372,109 @@
                 }
                 return data;
             }
+            function getTopEntry(obj) {
+                if (Object.keys(obj).length === 0) return ['-', 0];
+                return Object.entries(obj).sort(([, a], [, b]) => b - a)[0];
+            }
 
-            // Fungsi utama pemrosesan data
+            // --- Helper untuk Kotak Detail (onClick) ---
+            function showChartDetail(detailBoxId, title, dataHtml) {
+                const detailBox = document.getElementById(detailBoxId);
+                if (detailBox) {
+                    const titleEl = detailBox.querySelector('h5');
+                    const dataEl = detailBox.querySelector('p');
+                    if (titleEl && dataEl) {
+                        titleEl.innerHTML = title;
+                        dataEl.innerHTML = dataHtml;
+                        detailBox.classList.remove('hidden');
+                    }
+                }
+            }
+
+            function hideChartDetail(detailBoxId) {
+                 const detailBox = document.getElementById(detailBoxId);
+                 if (detailBox) {
+                    detailBox.classList.add('hidden');
+                 }
+            }
+            // --- Akhir Helper Baru ---
+
+            // --- Fungsi Processing Data Utama ---
             function processData(csvText) {
                 document.getElementById('loadingMessage').classList.remove('hidden');
                 document.getElementById('errorMessage').classList.add('hidden');
-                
-                try {
-                    const parsedData = parseCSV(csvText);
-                    
-                    allTransactions = parsedData.map(row => {
-                        // Perbaikan: Ganti koma (,) dengan titik (.) untuk desimal
-                        const purchaseAmount = parseFloat(row.Purchase_Amount.replace('.', '').replace(',', '.')) || 0;
-                        const dateParts = row.Transaction_Date.split('/');
-                        // Format tanggal: DD/MM/YYYY
-                        const transactionDate = new Date(+dateParts[2], dateParts[1] - 1, +dateParts[0]);
-                        return {
-                            ...row,
-                            Age: parseInt(row.Age) || 0,
-                            Purchase_Amount_Num: purchaseAmount,
-                            Transaction_Date_Obj: transactionDate,
-                        };
-                    }).filter(row => row.Transaction_ID && row.Transaction_Date_Obj instanceof Date && !isNaN(row.Transaction_Date_Obj)); 
 
-                    if (allTransactions.length === 0) {
-                        throw new Error("Tidak ada data valid yang ditemukan. Pastikan format CSV (delimiter ';') dan format tanggal (DD/MM/YYYY) sudah benar.");
+                try {
+                    // --- Logika Deteksi Cerdas ---
+                    const firstLine = csvText.split(/\r\n|\n/)[0];
+                    // 1. Deteksi Delimiter (Pemisah)
+                    const commaCount = (firstLine.match(/,/g) || []).length;
+                    const semicolonCount = (firstLine.match(/;/g) || []).length;
+                    const delimiter = semicolonCount > commaCount ? ';' : ',';
+                    
+                    const parsedData = parseCSV(csvText, delimiter);
+                    if (parsedData.length === 0) throw new Error("Tidak ada data yang bisa diparsing.");
+
+                    const sampleRow = parsedData[0];
+                    if (!sampleRow.Purchase_Amount || !sampleRow.Transaction_Date) {
+                        throw new Error("Header CSV tidak ditemukan. Pastikan ada kolom 'Purchase_Amount' dan 'Transaction_Date'.");
+                    }
+                    
+                    const sampleAmount = sampleRow.Purchase_Amount;
+                    const sampleDate = sampleRow.Transaction_Date;
+
+                    // 2. Deteksi Format Angka (US/UK vs Eropa)
+                    let numberParser;
+                    if (sampleAmount.includes(',') && sampleAmount.lastIndexOf(',') > sampleAmount.lastIndexOf('.')) {
+                        numberParser = (str) => parseFloat(str.replace(/\./g, '').replace(',', '.'));
+                    } else {
+                        numberParser = (str) => parseFloat(str.replace(/,/g, ''));
                     }
 
-                    // Hancurkan chart lama sebelum menggambar
+                    // 3. Deteksi Format Tanggal (DD/MM/YYYY vs MM/DD/YYYY)
+                    let dateParser;
+                    const dateParts = sampleDate.split('/');
+                    if (dateParts.length !== 3) throw new Error("Format tanggal tidak dikenal. Harap gunakan pemisah '/'.");
+
+                    if (parseInt(dateParts[0]) > 12) {
+                        dateParser = (str) => { const p = str.split('/'); return new Date(+p[2], p[1] - 1, +p[0]); }; // DD/MM/YYYY
+                    } else if (parseInt(dateParts[1]) > 12) {
+                        dateParser = (str) => { const p = str.split('/'); return new Date(+p[2], p[0] - 1, +p[1]); }; // MM/DD/YYYY
+                    } else {
+                        dateParser = (str) => { const p = str.split('/'); return new Date(+p[2], p[1] - 1, +p[0]); }; // Default: DD/MM/YYYY
+                    }
+                    // --- Akhir Logika Deteksi ---
+
+                    allTransactions = parsedData.map(row => ({
+                        ...row,
+                        Age: parseInt(row.Age) || 0,
+                        Purchase_Amount_Num: numberParser(row.Purchase_Amount) || 0,
+                        Transaction_Date_Obj: dateParser(row.Transaction_Date),
+                    })).filter(row => 
+                        row.Transaction_ID && 
+                        row.Transaction_Date_Obj instanceof Date && 
+                        !isNaN(row.Transaction_Date_Obj) &&
+                        !isNaN(row.Purchase_Amount_Num)
+                    ); 
+
+                    if (allTransactions.length === 0) throw new Error("Tidak ada data valid yang ditemukan setelah parsing.");
+
                     Object.keys(chartInstances).forEach(id => destroyChart(id));
-                    // Reset data agregat
-                    categorySales = {};
-                    countrySales = {};
-                    paymentCounts = {};
-                    ageBins = {};
+                    categorySales = {}; countrySales = {}; paymentCounts = {}; ageBins = {};
+                    
+                    document.querySelectorAll('.chart-detail-box').forEach(box => box.classList.add('hidden'));
 
                     displayStats();
-                    
                     createSalesOverTimeChart();
                     createCategoryChart();
                     createCountryChart();
                     createPaymentMethodChart();
                     createAgeDistributionChart();
                     createPurchaseAmountHistogram();
-                    
-                    // PENAMBAHAN: Panggil fungsi untuk generate interpretasi
                     displayInterpretations();
 
                     document.getElementById('statsContainer').classList.remove('hidden');
                     document.getElementById('chartsGrid').classList.remove('hidden');
-                    // PENAMBAHAN: Tampilkan bagian interpretasi
                     document.getElementById('interpretationSection').classList.remove('hidden');
                     
                 } catch (error) {
@@ -345,90 +486,57 @@
                     document.getElementById('loadingMessage').classList.add('hidden');
                 }
             }
-
-            // Fungsi statistik
+            
+            // --- Fungsi Statistik & Interpretasi ---
             function displayStats() {
                 const totalTransactions = allTransactions.length;
                 const totalRevenue = allTransactions.reduce((sum, tx) => sum + tx.Purchase_Amount_Num, 0);
                 const averagePurchase = totalRevenue / totalTransactions;
                 
-                // Kalkulasi negara teratas dipindahkan ke sini agar datanya bisa dipakai global
-                countrySales = allTransactions.reduce((acc, tx) => {
-                    acc[tx.Country] = (acc[tx.Country] || 0) + tx.Purchase_Amount_Num;
-                    return acc;
-                }, {});
-                
-                // Perbaikan: Menangani kasus 'countrySales' kosong
-                const topCountryEntry = Object.entries(countrySales).sort(([, a], [, b]) => b - a)[0];
-                const topCountry = topCountryEntry ? topCountryEntry[0] : '-';
+                countrySales = allTransactions.reduce((acc, tx) => { acc[tx.Country] = (acc[tx.Country] || 0) + tx.Purchase_Amount_Num; return acc; }, {});
+                const [topCountry] = getTopEntry(countrySales);
 
                 document.getElementById('totalTransactions').textContent = formatNumber(totalTransactions);
                 document.getElementById('totalRevenue').textContent = formatCurrency(totalRevenue);
                 document.getElementById('averagePurchase').textContent = formatCurrency(averagePurchase);
                 document.getElementById('topCountry').textContent = topCountry;
             }
-
-            // --- PENAMBAHAN: Fungsi Interpretasi Dinamis ---
-            function getTopEntry(obj) {
-                // Helper untuk mendapatkan [key, value] teratas dari sebuah objek
-                // Perbaikan: Menangani kasus objek kosong
-                if (Object.keys(obj).length === 0) return ['-', 0];
-                return Object.entries(obj).sort(([, a], [, b]) => b - a)[0];
-            }
-
+            
             function displayInterpretations() {
                 const interpretationContent = document.getElementById('interpretationContent');
                 if (!interpretationContent) return;
-
+                
                 try {
-                    // 1. Kategori Produk
                     const [topCategory, topCategorySales] = getTopEntry(categorySales);
                     const totalRevenue = Object.values(categorySales).reduce((a, b) => a + b, 0);
                     const topCategoryPercent = totalRevenue > 0 ? ((topCategorySales / totalRevenue) * 100).toFixed(1) : 0;
-
-                    // 2. Negara (data sudah ada di countrySales)
+                    
                     const [topCountry] = getTopEntry(countrySales);
-
-                    // 3. Metode Pembayaran
+                    
                     const [topPayment, topPaymentCount] = getTopEntry(paymentCounts);
                     const totalTx = Object.values(paymentCounts).reduce((a, b) => a + b, 0);
                     const topPaymentPercent = totalTx > 0 ? ((topPaymentCount / totalTx) * 100).toFixed(1) : 0;
-
-                    // 4. Demografi
+                    
                     const [topAgeGroup] = getTopEntry(ageBins);
 
-                    // 5. Kesimpulan
                     const conclusion = `Data menunjukkan fokus bisnis yang kuat pada kategori <strong>${topCategory}</strong>, yang menyumbang ${topCategoryPercent}% pendapatan. Pasar utama adalah <strong>${topCountry}</strong>, dengan demografi inti pada kelompok usia <strong>${topAgeGroup}</strong>.`;
 
-                    let html = `
+                    interpretationContent.innerHTML = `
                         <h3 class="text-xl font-semibold text-white mb-3">Interpretasi Data</h3>
                         <ul class="list-disc list-inside space-y-2 text-gray-300">
-                            <li>
-                                <strong>Kategori Produk Dominan:</strong> Kategori <strong>${topCategory}</strong> adalah pendorong pendapatan terbesar, menghasilkan <strong>${formatCurrency(topCategorySales)}</strong> (sekitar <strong>${topCategoryPercent}%</strong> dari total).
-                            </li>
-                            <li>
-                                <strong>Pasar Geografis Inti:</strong> Data mengkonfirmasi bahwa <strong>${topCountry}</strong> adalah pasar terkuat, mengungguli negara-negara lain secara signifikan.
-                            </li>
-                            <li>
-                                <strong>Demografi Pelanggan Utama:</strong> Kelompok usia <strong>${topAgeGroup}</strong> tahun adalah segmen pelanggan yang paling aktif, menunjukkan target audiens yang jelas untuk marketing.
-                            </li>
-                            <li>
-                                <strong>Preferensi Pembayaran:</strong> Metode pembayaran yang paling sering digunakan adalah <strong>${topPayment}</strong>, mencakup <strong>${topPaymentPercent}%</strong> dari seluruh transaksi, menandakan kenyamanan pelanggan dengan metode ini.
-                            </li>
+                            <li><strong>Kategori Produk Dominan:</strong> Kategori <strong>${topCategory}</strong> adalah pendorong pendapatan terbesar, menghasilkan <strong>${formatCurrency(topCategorySales)}</strong> (sekitar <strong>${topCategoryPercent}%</strong> dari total).</li>
+                            <li><strong>Pasar Geografis Inti:</strong> Data mengkonfirmasi bahwa <strong>${topCountry}</strong> adalah pasar terkuat.</li>
+                            <li><strong>Demografi Pelanggan Utama:</strong> Kelompok usia <strong>${topAgeGroup}</strong> tahun adalah segmen pelanggan yang paling aktif.</li>
+                            <li><strong>Preferensi Pembayaran:</strong> Metode pembayaran yang paling sering digunakan adalah <strong>${topPayment}</strong>, mencakup <strong>${topPaymentPercent}%</strong> dari seluruh transaksi.</li>
                         </ul>
                         <h3 class="text-xl font-semibold text-white mt-6 mb-3">Kesimpulan & Rekomendasi</h3>
-                        <p class="text-gray-400 leading-relaxed">
-                            ${conclusion} Rekomendasi strategis adalah untuk (1) melakukan diversifikasi produk di luar ${topCategory} untuk mengurangi risiko ketergantungan, (2) mengoptimalkan kampanye marketing yang menargetkan kelompok usia ${topAgeGroup} di ${topCountry}, dan (3) mengevaluasi promosi untuk metode pembayaran selain ${topPayment} guna meningkatkan konversi pelanggan.
-                        </p>
+                        <p class="text-gray-400 leading-relaxed">${conclusion} Rekomendasi: (1) diversifikasi produk di luar ${topCategory}, (2) optimalkan marketing untuk usia ${topAgeGroup} di ${topCountry}, dan (3) evaluasi promosi untuk metode pembayaran selain ${topPayment}.</p>
                     `;
-
-                    interpretationContent.innerHTML = html;
                 } catch (e) {
                     interpretationContent.innerHTML = `<p class="text-red-400">Gagal menghasilkan interpretasi: ${e.message}</p>`;
                     console.error("Error generating interpretation:", e);
                 }
             }
-
 
             // --- Fungsi Pembuatan Chart ---
 
@@ -443,27 +551,43 @@
                 const sortedMonths = Object.keys(salesByMonth).sort();
                 const labels = sortedMonths;
                 const data = sortedMonths.map(month => salesByMonth[month]);
-
+                
                 const ctx = document.getElementById('salesOverTimeChart').getContext('2d');
-                chartInstances['salesOverTimeChart'] = new Chart(ctx, {
+                
+                const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+                gradient.addColorStop(0, 'rgba(59, 130, 246, 0.4)');
+                gradient.addColorStop(1, 'rgba(59, 130, 246, 0.05)');
+
+                const chartId = 'salesOverTimeChart';
+                const detailBoxId = 'salesOverTimeDetail';
+
+                chartInstances[chartId] = new Chart(ctx, {
                     type: 'line',
                     data: {
                         labels: labels,
                         datasets: [{
                             label: 'Total Penjualan',
                             data: data,
-                            borderColor: appColors[0],
-                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderColor: appColors[0], 
+                            backgroundColor: gradient, 
+                            borderWidth: 2.5,
                             fill: true,
-                            tension: 0.3
+                            tension: 0.4, 
+                            pointRadius: 0, 
+                            pointHitRadius: 10, 
+                            pointHoverRadius: 6, 
+                            pointHoverBackgroundColor: appColors[0],
+                            pointHoverBorderColor: '#ffffff'
                         }]
                     },
                     options: {
                         responsive: true,
-                        maintainAspectRatio: false, // WAJIB false agar mengisi wrapper
+                        maintainAspectRatio: false,
                         plugins: {
                             title: { display: true, text: 'Tren Penjualan (per Bulan)' },
                             tooltip: {
+                                mode: 'index',
+                                intersect: false,
                                 callbacks: {
                                     label: (context) => `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`
                                 }
@@ -471,7 +595,37 @@
                         },
                         scales: {
                             y: {
-                                ticks: { callback: (value) => formatCurrency(value) }
+                                ticks: {
+                                    // PERBAIKAN: Mengembalikan string kosong ('') jika bukan angka
+                                    callback: (value) => {
+                                        if (typeof value === 'number' && Number.isFinite(value)) {
+                                            return formatCurrency(value);
+                                        }
+                                        return ''; // Jauh lebih aman daripada null atau value
+                                    }
+                                },
+                                grid: { color: 'rgba(255, 255, 255, 0.05)' } 
+                            },
+                            x: {
+                                grid: { display: false } 
+                            }
+                        },
+                        onClick: (event, elements) => {
+                            const chart = chartInstances[chartId];
+                            if (!chart) return;
+                            if (elements.length > 0) { 
+                                const element = elements[0];
+                                const index = element.index;
+                                const datasetIndex = element.datasetIndex;
+                                const label = chart.data.labels[index];
+                                const value = chart.data.datasets[datasetIndex].data[index];
+                                const datasetLabel = chart.data.datasets[datasetIndex].label;
+                                
+                                const title = `Bulan: ${label}`;
+                                const dataHtml = `${datasetLabel}: <strong>${formatCurrency(value)}</strong>`;
+                                showChartDetail(detailBoxId, title, dataHtml);
+                            } else { 
+                                hideChartDetail(detailBoxId);
                             }
                         }
                     }
@@ -480,7 +634,6 @@
 
             // 2. Chart Penjualan per Kategori (Doughnut)
             function createCategoryChart() {
-                // Mengisi variabel global
                 categorySales = allTransactions.reduce((acc, tx) => {
                     acc[tx.Product_Category] = (acc[tx.Product_Category] || 0) + tx.Purchase_Amount_Num;
                     return acc;
@@ -488,9 +641,12 @@
 
                 const labels = Object.keys(categorySales);
                 const data = Object.values(categorySales);
-
                 const ctx = document.getElementById('categoryChart').getContext('2d');
-                chartInstances['categoryChart'] = new Chart(ctx, {
+                
+                const chartId = 'categoryChart';
+                const detailBoxId = 'categoryDetail';
+
+                chartInstances[chartId] = new Chart(ctx, {
                     type: 'doughnut',
                     data: {
                         labels: labels,
@@ -498,25 +654,50 @@
                             label: 'Penjualan',
                             data: data,
                             backgroundColor: appColors,
-                            hoverOffset: 8,
-                            borderColor: '#1e293b' // bg-slate-800
+                            hoverOffset: 12, 
+                            borderColor: '#1e293b', 
+                            borderWidth: 3, 
                         }]
                     },
                     options: {
                         responsive: true,
-                        maintainAspectRatio: false, // WAJIB false agar mengisi wrapper
+                        maintainAspectRatio: true, // FIX BUG GEPENG/OVAL
+                        cutout: '65%', 
                         plugins: {
                             title: { display: true, text: 'Penjualan per Kategori Produk' },
+                            legend: {
+                                position: 'right', 
+                                labels: { boxWidth: 12, padding: 15 }
+                            },
                             tooltip: {
                                 callbacks: {
                                     label: (context) => {
-                                        const label = context.label || '';
-                                        const value = context.parsed || 0;
                                         const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
-                                        const percentage = ((value / total) * 100).toFixed(2);
-                                        return `${label}: ${formatCurrency(value)} (${percentage}%)`;
+                                        const percentage = ((context.parsed / total) * 100).toFixed(2);
+                                        return `${context.label}: ${formatCurrency(context.parsed)} (${percentage}%)`;
                                     }
                                 }
+                            }
+                        },
+                        onClick: (event, elements) => {
+                            const chart = chartInstances[chartId];
+                            if (!chart) return;
+                            if (elements.length > 0) {
+                                const element = elements[0];
+                                const index = element.index;
+                                const datasetIndex = element.datasetIndex;
+                                const label = chart.data.labels[index];
+                                const value = chart.data.datasets[datasetIndex].data[index];
+                                const datasetLabel = chart.data.datasets[datasetIndex].label;
+                                
+                                const total = chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+
+                                const title = `Kategori: ${label}`;
+                                const dataHtml = `${datasetLabel}: <strong>${formatCurrency(value)}</strong><br><span class="text-sm text-gray-400">(${percentage}% dari total)</span>`;
+                                showChartDetail(detailBoxId, title, dataHtml);
+                            } else {
+                                hideChartDetail(detailBoxId);
                             }
                         }
                     }
@@ -525,29 +706,39 @@
 
             // 3. Chart Top 10 Negara (Bar)
             function createCountryChart() {
-                // Data sudah dihitung di displayStats() dan disimpan di 'countrySales'
                 const sortedCountries = Object.entries(countrySales).sort(([, a], [, b]) => b - a).slice(0, 10);
                 const labels = sortedCountries.map(entry => entry[0]);
                 const data = sortedCountries.map(entry => entry[1]);
-
+                
                 const ctx = document.getElementById('countryChart').getContext('2d');
-                chartInstances['countryChart'] = new Chart(ctx, {
-                    type: 'bar',
+
+                const gradient = ctx.createLinearGradient(0, 0, 500, 0); 
+                gradient.addColorStop(0, 'rgba(22, 163, 74, 0.6)'); 
+                gradient.addColorStop(1, 'rgba(22, 163, 74, 1)');
+
+                const chartId = 'countryChart';
+                const detailBoxId = 'countryDetail';
+
+                chartInstances[chartId] = new Chart(ctx, {
+                    type: 'bar', 
                     data: {
                         labels: labels,
                         datasets: [{
                             label: 'Total Pendapatan',
                             data: data,
-                            backgroundColor: appColors[1],
+                            backgroundColor: gradient,
+                            hoverBackgroundColor: appColors[1],
+                            borderRadius: 6, 
+                            borderWidth: 0,
                         }]
                     },
                     options: {
-                        indexAxis: 'y', // Horizontal bar chart
+                        indexAxis: 'y', 
                         responsive: true,
-                        maintainAspectRatio: false, // WAJIB false agar mengisi wrapper
+                        maintainAspectRatio: false,
                         plugins: {
                             title: { display: true, text: 'Top 10 Negara (berdasar Pendapatan)' },
-                            legend: { display: false },
+                            legend: { display: false }, 
                             tooltip: {
                                 callbacks: {
                                     label: (context) => `${context.dataset.label}: ${formatCurrency(context.parsed.x)}`
@@ -556,65 +747,117 @@
                         },
                         scales: {
                             x: {
-                                ticks: { callback: (value) => formatCurrency(value) }
+                                ticks: {
+                                    // PERBAIKAN: Mengembalikan string kosong ('') jika bukan angka
+                                    callback: (value) => {
+                                        if (typeof value === 'number' && Number.isFinite(value)) {
+                                            return formatCurrency(value);
+                                        }
+                                        return ''; // Jauh lebih aman daripada null atau value
+                                    }
+                                },
+                                grid: { display: false } 
+                            },
+                            y: {
+                                grid: { display: false } 
+                            }
+                        },
+                        onClick: (event, elements) => {
+                            const chart = chartInstances[chartId];
+                            if (!chart) return;
+                            if (elements.length > 0) {
+                                const element = elements[0];
+                                const index = element.index;
+                                const datasetIndex = element.datasetIndex;
+                                const label = chart.data.labels[index];
+                                const value = chart.data.datasets[datasetIndex].data[index];
+                                const datasetLabel = chart.data.datasets[datasetIndex].label;
+
+                                const title = `Negara: ${label}`;
+                                const dataHtml = `${datasetLabel}: <strong>${formatCurrency(value)}</strong>`;
+                                showChartDetail(detailBoxId, title, dataHtml);
+                            } else {
+                                hideChartDetail(detailBoxId);
                             }
                         }
                     }
                 });
             }
 
-            // 4. Chart Metode Pembayaran (Pie)
+            // 4. Chart Distribusi Metode Pembayaran (Pie)
             function createPaymentMethodChart() {
-                // Mengisi variabel global
                 paymentCounts = allTransactions.reduce((acc, tx) => {
-                    acc[tx.Payment_Method] = (acc[tx.Payment_Method] || 0) + 1;
+                    acc[tx.Payment_Method] = (acc[tx.Payment_Method] || 0) + 1; 
                     return acc;
                 }, {});
 
                 const labels = Object.keys(paymentCounts);
                 const data = Object.values(paymentCounts);
-
                 const ctx = document.getElementById('paymentMethodChart').getContext('2d');
-                chartInstances['paymentMethodChart'] = new Chart(ctx, {
-                    type: 'pie',
+                
+                const chartId = 'paymentMethodChart';
+                const detailBoxId = 'paymentMethodDetail';
+                
+                chartInstances[chartId] = new Chart(ctx, {
+                    type: 'pie', 
                     data: {
                         labels: labels,
                         datasets: [{
                             label: 'Jumlah Transaksi',
                             data: data,
-                            backgroundColor: [appColors[2], appColors[3], appColors[4], appColors[5], appColors[6], appColors[7]],
-                            hoverOffset: 8,
-                            borderColor: '#1e293b'
+                            backgroundColor: [appColors[2], appColors[3], appColors[4], appColors[5], appColors[6], appColors[7]], 
+                            hoverOffset: 12,
+                            borderColor: '#1e293b',
+                            borderWidth: 3,
                         }]
                     },
                     options: {
                         responsive: true,
-                        maintainAspectRatio: false, // WAJIB false agar mengisi wrapper
+                        maintainAspectRatio: true, // FIX BUG GEPENG/OVAL
                         plugins: {
                             title: { display: true, text: 'Distribusi Metode Pembayaran' },
+                            legend: {
+                                position: 'top', 
+                                labels: { boxWidth: 12, padding: 15 }
+                            },
                             tooltip: {
                                 callbacks: {
                                     label: (context) => {
-                                        const label = context.label || '';
-                                        const value = context.parsed || 0;
                                         const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
-                                        const percentage = ((value / total) * 100).toFixed(2);
-                                        return `${label}: ${formatNumber(value)} (${percentage}%)`;
+                                        const percentage = ((context.parsed / total) * 100).toFixed(2);
+                                        return `${context.label}: ${formatNumber(context.parsed)} (${percentage}%)`;
                                     }
                                 }
+                            }
+                        },
+                        onClick: (event, elements) => {
+                            const chart = chartInstances[chartId];
+                            if (!chart) return;
+                            if (elements.length > 0) {
+                                const element = elements[0];
+                                const index = element.index;
+                                const datasetIndex = element.datasetIndex;
+                                const label = chart.data.labels[index];
+                                const value = chart.data.datasets[datasetIndex].data[index];
+                                const datasetLabel = chart.data.datasets[datasetIndex].label;
+                                
+                                const total = chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+
+                                const title = `Metode: ${label}`;
+                                const dataHtml = `${datasetLabel}: <strong>${formatNumber(value)}</strong><br><span class="text-sm text-gray-400">(${percentage}% dari total)</span>`;
+                                showChartDetail(detailBoxId, title, dataHtml);
+                            } else {
+                                hideChartDetail(detailBoxId);
                             }
                         }
                     }
                 });
             }
 
-            // 5. Chart Distribusi Usia (Bar)
+            // 5. Chart Distribusi Usia Pelanggan (Bar)
             function createAgeDistributionChart() {
-                // Mengisi variabel global
-                ageBins = {
-                    '18-25': 0, '26-35': 0, '36-45': 0,
-                    '46-55': 0, '56-65': 0, '65+': 0
-                };
+                ageBins = { '18-25': 0, '26-35': 0, '36-45': 0, '46-55': 0, '56-65': 0, '65+': 0 };
                 allTransactions.forEach(tx => {
                     if (tx.Age <= 25) ageBins['18-25']++;
                     else if (tx.Age <= 35) ageBins['26-35']++;
@@ -626,9 +869,12 @@
 
                 const labels = Object.keys(ageBins);
                 const data = Object.values(ageBins);
-
                 const ctx = document.getElementById('ageDistributionChart').getContext('2d');
-                chartInstances['ageDistributionChart'] = new Chart(ctx, {
+                
+                const chartId = 'ageDistributionChart';
+                const detailBoxId = 'ageDistributionDetail';
+
+                chartInstances[chartId] = new Chart(ctx, {
                     type: 'bar',
                     data: {
                         labels: labels,
@@ -636,18 +882,44 @@
                             label: 'Jumlah Pelanggan',
                             data: data,
                             backgroundColor: appColors[4],
+                            hoverBackgroundColor: 'rgba(139, 92, 246, 0.8)',
+                            borderRadius: 6, 
                         }]
                     },
                     options: {
                         responsive: true,
-                        maintainAspectRatio: false, // WAJIB false agar mengisi wrapper
+                        maintainAspectRatio: false,
                         plugins: {
                             title: { display: true, text: 'Distribusi Usia Pelanggan' },
                             legend: { display: false }
                         },
                         scales: {
-                            y: { title: { display: true, text: 'Jumlah Pelanggan' } },
-                            x: { title: { display: true, text: 'Kelompok Usia' } }
+                            y: { 
+                                title: { display: true, text: 'Jumlah Pelanggan' },
+                                grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                            },
+                            x: { 
+                                title: { display: true, text: 'Kelompok Usia' },
+                                grid: { display: false }
+                            }
+                        },
+                        onClick: (event, elements) => {
+                            const chart = chartInstances[chartId];
+                            if (!chart) return;
+                            if (elements.length > 0) {
+                                const element = elements[0];
+                                const index = element.index;
+                                const datasetIndex = element.datasetIndex;
+                                const label = chart.data.labels[index];
+                                const value = chart.data.datasets[datasetIndex].data[index];
+                                const datasetLabel = chart.data.datasets[datasetIndex].label;
+
+                                const title = `Kelompok Usia: ${label}`;
+                                const dataHtml = `${datasetLabel}: <strong>${formatNumber(value)}</strong> orang`;
+                                showChartDetail(detailBoxId, title, dataHtml);
+                            } else {
+                                hideChartDetail(detailBoxId);
+                            }
                         }
                     }
                 });
@@ -657,31 +929,29 @@
             function createPurchaseAmountHistogram() {
                 const amounts = allTransactions.map(tx => tx.Purchase_Amount_Num);
                 const maxAmount = Math.max(...amounts);
-                // Ukuran bin dinamis, maks 20 bin
                 const binCount = Math.min(20, Math.ceil(maxAmount / 100));
                 const binSize = binCount > 0 ? Math.ceil(maxAmount / binCount) : 100;
-                
+
                 const bins = new Array(binCount).fill(0);
-                const labels = new Array(binCount).fill(0).map((_, i) => 
-                    `$${i * binSize + 1} - $${(i + 1) * binSize}`
-                );
+                const labels = new Array(binCount).fill(0).map((_, i) => `$${i * binSize + 1} - $${(i + 1) * binSize}`);
 
                 amounts.forEach(amount => {
                     let binIndex = Math.floor(amount / binSize);
-                    // Menangani nilai maksimum yang tepat di batas
-                    if (amount > 0 && amount % binSize === 0) {
-                        binIndex -= 1; 
-                    }
+                    if (amount > 0 && amount % binSize === 0) binIndex -= 1; 
+                    
                     if (binIndex >= 0 && binIndex < binCount) {
                         bins[binIndex]++;
-                    } else if (amount === 0) {
-                         // Asumsi 0 masuk ke bin pertama jika ada
-                        if (bins.length > 0) bins[0]++;
+                    } else if (amount === 0 && bins.length > 0) {
+                        bins[0]++; 
                     }
                 });
-
+                
                 const ctx = document.getElementById('purchaseAmountHistogram').getContext('2d');
-                chartInstances['purchaseAmountHistogram'] = new Chart(ctx, {
+
+                const chartId = 'purchaseAmountHistogram';
+                const detailBoxId = 'purchaseAmountHistogramDetail';
+
+                chartInstances[chartId] = new Chart(ctx, {
                     type: 'bar',
                     data: {
                         labels: labels,
@@ -689,32 +959,57 @@
                             label: 'Jumlah Transaksi',
                             data: bins,
                             backgroundColor: appColors[5],
+                            hoverBackgroundColor: 'rgba(20, 184, 166, 0.8)',
+                            borderRadius: 6,
                         }]
                     },
                     options: {
                         responsive: true,
-                        maintainAspectRatio: false, // WAJIB false agar mengisi wrapper
+                        maintainAspectRatio: false,
                         plugins: {
                             title: { display: true, text: 'Distribusi Jumlah Pembelian' },
                             legend: { display: false }
                         },
                         scales: {
-                            y: { title: { display: true, text: 'Jumlah Transaksi' } },
-                            x: { title: { display: true, text: 'Kelompok Jumlah Pembelian' } }
+                            y: { 
+                                title: { display: true, text: 'Jumlah Transaksi' },
+                                grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                            },
+                            x: { 
+                                title: { display: true, text: 'Kelompok Jumlah Pembelian' },
+                                grid: { display: false }
+                            }
+                        },
+                        onClick: (event, elements) => {
+                            const chart = chartInstances[chartId];
+                            if (!chart) return;
+                            if (elements.length > 0) {
+                                const element = elements[0];
+                                const index = element.index;
+                                const datasetIndex = element.datasetIndex;
+                                const label = chart.data.labels[index];
+                                const value = chart.data.datasets[datasetIndex].data[index];
+                                const datasetLabel = chart.data.datasets[datasetIndex].label;
+
+                                const title = `Rentang Pembelian: ${label}`;
+                                const dataHtml = `${datasetLabel}: <strong>${formatNumber(value)}</strong> transaksi`;
+                                showChartDetail(detailBoxId, title, dataHtml);
+                            } else {
+                                hideChartDetail(detailBoxId);
+                            }
                         }
                     }
                 });
             }
 
-
-            // --- Event Listener ---
+            // --- Event Listener untuk Upload File ---
             const fileInput = document.getElementById('csvFileInput');
             const fileUploadText = document.getElementById('fileUploadText');
 
             fileInput.addEventListener('change', (event) => {
                 const file = event.target.files[0];
                 if (file) {
-                    fileUploadText.textContent = file.name; // Tampilkan nama file
+                    fileUploadText.textContent = file.name; 
                     const reader = new FileReader();
                     reader.onload = (e) => processData(e.target.result);
                     reader.onerror = () => {
@@ -728,7 +1023,8 @@
                 }
             });
 
-        }); // <-- Penutup untuk DOMContentLoaded
+        });
     </script>
 </body>
 </html>
+
