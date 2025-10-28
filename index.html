@@ -23,6 +23,28 @@
         * {
             transition: all 0.15s ease-in-out;
         }
+        /* PERBAIKAN: Memberi ukuran pada canvas wrapper agar tidak kolaps */
+        /* Kita beri aspek rasio default untuk chart */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            padding-top: 65%; /* Sekitar rasio 16:9 atau 3:2, bisa disesuaikan */
+        }
+        
+        /* Untuk chart pie/doughnut, kita buat 1:1 */
+        .chart-container-square {
+            position: relative;
+            width: 100%;
+            padding-top: 90%; /* Sedikit lebih tinggi dari 1:1 untuk legenda */
+        }
+
+        .chart-container canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100% !important;
+            height: 100% !important;
+        }
     </style>
 </head>
 <body class="bg-slate-900 text-gray-200 min-h-screen p-4 md:p-8">
@@ -127,32 +149,50 @@
             
             <!-- Chart 1: Tren Penjualan per Bulan (Line Chart) -->
             <div class="bg-slate-800 p-4 md:p-6 rounded-lg shadow-lg">
-                <canvas id="salesOverTimeChart"></canvas>
+                <!-- PERBAIKAN: Wrapper untuk rasio aspek -->
+                <div class="chart-container">
+                    <canvas id="salesOverTimeChart"></canvas>
+                </div>
             </div>
 
             <!-- Chart 2: Penjualan per Kategori Produk (Doughnut Chart) -->
             <div class="bg-slate-800 p-4 md:p-6 rounded-lg shadow-lg">
-                <canvas id="categoryChart"></canvas>
+                <!-- PERBAIKAN: Wrapper untuk rasio aspek persegi -->
+                <div class="chart-container-square">
+                    <canvas id="categoryChart"></canvas>
+                </div>
             </div>
 
             <!-- Chart 3: Top 10 Negara (Bar Chart) -->
             <div class="bg-slate-800 p-4 md:p-6 rounded-lg shadow-lg">
-                <canvas id="countryChart"></canvas>
+                <!-- PERBAIKAN: Wrapper untuk rasio aspek -->
+                <div class="chart-container">
+                    <canvas id="countryChart"></canvas>
+                </div>
             </div>
 
             <!-- Chart 4: Distribusi Metode Pembayaran (Pie Chart) -->
             <div class="bg-slate-800 p-4 md:p-6 rounded-lg shadow-lg">
-                <canvas id="paymentMethodChart"></canvas>
+                <!-- PERBAIKAN: Wrapper untuk rasio aspek persegi -->
+                <div class="chart-container-square">
+                    <canvas id="paymentMethodChart"></canvas>
+                </div>
             </div>
 
             <!-- Chart 5: Distribusi Usia Pelanggan (Bar Chart) -->
             <div class="bg-slate-800 p-4 md:p-6 rounded-lg shadow-lg">
-                <canvas id="ageDistributionChart"></canvas>
+                <!-- PERBAIKAN: Wrapper untuk rasio aspek -->
+                <div class="chart-container">
+                    <canvas id="ageDistributionChart"></canvas>
+                </div>
             </div>
 
             <!-- Chart 6: Distribusi Jumlah Pembelian (Histogram) -->
             <div class="bg-slate-800 p-4 md:p-6 rounded-lg shadow-lg">
-                <canvas id="purchaseAmountHistogram"></canvas>
+                <!-- PERBAIKAN: Wrapper untuk rasio aspek -->
+                <div class="chart-container">
+                    <canvas id="purchaseAmountHistogram"></canvas>
+                </div>
             </div>
         </div>
         
@@ -319,7 +359,7 @@
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false, // Penting untuk responsiveness
+                    maintainAspectRatio: false, // <-- PERBAIKAN: Dibuat false agar mengisi wrapper
                     plugins: {
                         title: { display: true, text: 'Tren Penjualan (per Bulan)' },
                         tooltip: {
@@ -362,7 +402,7 @@
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false,
+                    maintainAspectRatio: false, // <-- PERBAIKAN: Dibuat false agar mengisi wrapper
                     plugins: {
                         title: { display: true, text: 'Penjualan per Kategori Produk' },
                         tooltip: {
@@ -405,7 +445,7 @@
                 options: {
                     indexAxis: 'y', // Horizontal bar chart
                     responsive: true,
-                    maintainAspectRatio: false,
+                    maintainAspectRatio: false, // <-- PERBAIKAN: Dibuat false agar mengisi wrapper
                     plugins: {
                         title: { display: true, text: 'Top 10 Negara (berdasar Pendapatan)' },
                         legend: { display: false },
@@ -449,7 +489,7 @@
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false,
+                    maintainAspectRatio: false, // <-- PERBAIKAN: Dibuat false agar mengisi wrapper
                     plugins: {
                         title: { display: true, text: 'Distribusi Metode Pembayaran' },
                          tooltip: {
@@ -499,7 +539,7 @@
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false,
+                    maintainAspectRatio: false, // <-- PERBAIKAN: Dibuat false agar mengisi wrapper
                     plugins: {
                         title: { display: true, text: 'Distribusi Usia Pelanggan' },
                          legend: { display: false }
@@ -520,11 +560,13 @@
             const binCount = Math.ceil(maxAmount / binSize);
             const bins = new Array(binCount).fill(0);
             const labels = new Array(binCount).fill(0).map((_, i) => 
-                `${i * binSize + 1} - ${(i + 1) * binSize}`
+                `$${i * binSize + 1} - $${(i + 1) * binSize}`
             );
             amounts.forEach(amount => {
                 const binIndex = Math.floor(amount / binSize);
-                if (binIndex < binCount) bins[binIndex]++;
+                if (binIndex >= 0 && binIndex < binCount) {
+                    bins[binIndex]++;
+                }
             });
 
             const ctx = document.getElementById('purchaseAmountHistogram').getContext('2d');
@@ -540,9 +582,9 @@
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false,
+                    maintainAspectRatio: false, // <-- PERBAIKAN: Dibuat false agar mengisi wrapper
                     plugins: {
-                        title: { display: true, text: 'Distribusi Jumlah Pembelian ($)' },
+                        title: { display: true, text: 'Distribusi Jumlah Pembelian' },
                          legend: { display: false }
                     },
                     scales: {
